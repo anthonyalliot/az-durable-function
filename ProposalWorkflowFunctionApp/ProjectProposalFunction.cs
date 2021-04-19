@@ -14,7 +14,7 @@ namespace ProposalWorkflowFunctionApp
 {
     public static class ProjectProposalFunction
     {
-        [FunctionName("Run")]
+        [FunctionName("run")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             [DurableClient] IDurableClient starter,
@@ -22,6 +22,28 @@ namespace ProposalWorkflowFunctionApp
         {
             string instanceId = await starter.StartNewAsync("process-proposal-orchestration");
             return starter.CreateCheckStatusResponse(req, instanceId);
+        }
+
+        [FunctionName("approve-proposal")]
+        public static Task ApproveProposal(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "approve-proposal/{proposalId}")]
+            HttpRequestMessage req,
+            string proposalId,
+            [DurableClient] IDurableOrchestrationClient client,
+            ILogger log)
+        {
+            return client.RaiseEventAsync(proposalId, "ApprovalEvent", true);
+        }
+
+        [FunctionName("reject-proposal")]
+        public static Task RejectProposal(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reject-proposal/{proposalId}")]
+            HttpRequestMessage req,
+            string proposalId,
+            [DurableClient] IDurableOrchestrationClient client,
+            ILogger log)
+        {
+            return client.RaiseEventAsync(proposalId, "ApprovalEvent", false);
         }
 
         [FunctionName("process-proposal-orchestration")]
@@ -81,28 +103,6 @@ namespace ProposalWorkflowFunctionApp
              * Compute charts according to the features/tasks/estimated time...
              */
             return Task.CompletedTask;
-        }
-
-        [FunctionName("approve-proposal")]
-        public static Task ApproveProposal(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "approve-proposal/{proposalId}")]
-            HttpRequestMessage req,
-            string proposalId,
-            [DurableClient] IDurableOrchestrationClient client,
-            ILogger log)
-        {
-            return client.RaiseEventAsync(proposalId, "ApprovalEvent", true);
-        }
-
-        [FunctionName("reject-proposal")]
-        public static Task RejectProposal(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reject-proposal/{proposalId}")]
-            HttpRequestMessage req,
-            string proposalId,
-            [DurableClient] IDurableOrchestrationClient client,
-            ILogger log)
-        {
-            return client.RaiseEventAsync(proposalId, "ApprovalEvent", false);
         }
 
         [FunctionName("get-project-proposal")]
@@ -190,17 +190,7 @@ namespace ProposalWorkflowFunctionApp
             ILogger log)
         {
             /*
-             * Send proposal to the manager
-             */
-            return Task.CompletedTask;
-        }
-
-        [FunctionName("build-planning-tasks")]
-        public static Task BuildPlanningTasks([ActivityTrigger] FeatureModel feature,
-            ILogger log)
-        { 
-            /*
-             * Build planning tasks
+             * Send the proposal to the manager
              */
             return Task.CompletedTask;
         }
@@ -210,7 +200,7 @@ namespace ProposalWorkflowFunctionApp
             ILogger log)
         {
             /*
-             * Notify team's members
+             * Notify the team's members
              */
             return Task.CompletedTask;
         }
@@ -221,7 +211,7 @@ namespace ProposalWorkflowFunctionApp
         {
             /*
              * Reject the project proposal
-             * => notify the proposal requestor
+             * => notify the proposal creator
              */
             return Task.CompletedTask;
         }
